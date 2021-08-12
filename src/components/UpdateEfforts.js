@@ -1,0 +1,205 @@
+import React, { Component } from 'react';
+import XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
+
+class UpdateEfforts extends Component {
+   constructor(props) {
+      super(props);
+      this.dateMap = new Map();
+      this.map = new Map();
+      this.mapValueToArray = [];
+      this.allowedFiles = ['xlsx', 'xls', 'csv'];
+      this.headerString = null;
+      this.valueArrayToString = null;
+      this.date = new Date();
+      this.targetFileDetails = [];
+      this.headers = [];
+      this.state = {
+         disableButtonValue: true,
+         excelData: null,
+      };
+   }
+
+   onFileChange = (event) => {
+      for (let i = 0; i < event.target.files.length; i++) {
+         let fileExtension = event.target.files[i].name.split('.').pop();
+         if (!this.allowedFiles.includes(fileExtension)) {
+            alert(
+               event.target.files[i].name + ' is not a excel file.Please check'
+            );
+         } else {
+            this.readExcelFiles(event, i);
+         }
+      }
+   };
+
+   readExcelFiles = (event, i) => {
+      const excelSheet = event.target.files[i];
+      const filePromise = new Promise((resolve, reject) => {
+         const fileReader = new FileReader();
+         fileReader.readAsArrayBuffer(excelSheet);
+         fileReader.onload = (e) => {
+            const excelAsArray = e.target.result;
+            const readExcel = XLSX.read(excelAsArray, { type: 'buffer' });
+            const worksheetName = readExcel.SheetNames[0];
+            const openWorksheet = readExcel.Sheets[worksheetName];
+            const data = XLSX.utils.sheet_to_json(openWorksheet);
+
+            this.headers = Object.keys(data[0]);
+            this.headerString = JSON.stringify(this.headers);
+
+            if (this.headerString.includes('PROJECT_PRODUCTIVE_FLAG')) {
+               data.sort(function (a, b) {
+                  return a.EMP_ID - b.EMP_ID;
+               });
+               console.log(data);
+               for (let employee of data) {
+                  if (!this.map.has(employee.EMP_ID)) {
+                     this.map.set(employee.EMP_ID, '0000000');
+                     this.date = 12 / 7 / 2021;
+                     console.log(this.date);
+                     this.dateMap.set(employee.EMP_ID, employee.TIMEPERIOD);
+
+                     this.mapValueToArray = this.map
+                        .get(employee.EMP_ID)
+                        .split('');
+
+                     if (
+                        employee.PROJECT_PRODUCTIVE_FLAG.toLowerCase() ===
+                           'yes' ||
+                        employee.PROJECT_PRODUCTIVE_FLAG.toLowerCase() === 'no'
+                     ) {
+                        if (employee.MON === 8 || employee.MON === 4) {
+                           this.mapValueToArray[0] = 1;
+                        }
+                        if (employee.TUE === 8 || employee.TUE === 4) {
+                           this.mapValueToArray[1] = 1;
+                        }
+                        if (employee.WED === 8 || employee.WED === 4) {
+                           this.mapValueToArray[2] = 1;
+                        }
+                        if (employee.THU === 8 || employee.THU === 4) {
+                           this.mapValueToArray[3] = 1;
+                        }
+                        if (employee.FRI === 8 || employee.FRI === 4) {
+                           this.mapValueToArray[4] = 1;
+                        }
+                        if (employee.SAT === 8 || employee.SAT === 4) {
+                           this.mapValueToArray[5] = 1;
+                        }
+                        if (employee.SUN === 8 || employee.SUN === 4) {
+                           this.mapValueToArray[6] = 1;
+                        }
+                     }
+                  } else {
+                     this.mapValueToArray = this.map
+                        .get(employee.EMP_ID)
+                        .split('');
+                     if (
+                        employee.PROJECT_PRODUCTIVE_FLAG.toLowerCase() ===
+                           'yes' ||
+                        employee.PROJECT_PRODUCTIVE_FLAG.toLowerCase() === 'no'
+                     ) {
+                        if (employee.MON === 8 || employee.MON === 4) {
+                           this.mapValueToArray[0] = 1;
+                        }
+                        if (employee.TUE === 8 || employee.TUE === 4) {
+                           this.mapValueToArray[1] = 1;
+                        }
+                        if (employee.WED === 8 || employee.WED === 4) {
+                           this.mapValueToArray[2] = 1;
+                        }
+                        if (employee.THU === 8 || employee.THU === 4) {
+                           this.mapValueToArray[3] = 1;
+                        }
+                        if (employee.FRI === 8 || employee.FRI === 4) {
+                           this.mapValueToArray[4] = 1;
+                        }
+                        if (employee.SAT === 8 || employee.SAT === 4) {
+                           this.mapValueToArray[5] = 1;
+                        }
+                        if (employee.SUN === 8 || employee.SUN === 4) {
+                           this.mapValueToArray[6] = 1;
+                        }
+                     }
+                  }
+                  this.valueArrayToString = this.mapValueToArray.join('');
+                  this.map.set(employee.EMP_ID, this.valueArrayToString);
+               }
+            } else if (
+               this.headerString.includes('CALCULATED_EFFORTS') ||
+               this.headerString.includes('APPROVED_EFFORTS')
+            ) {
+               console.log(data);
+            } else {
+               alert('only target and source files are allowed to upload.');
+            }
+            console.log(this.map);
+            console.log(this.dateMap);
+         };
+
+         fileReader.onerror = (error) => {
+            reject(error);
+         };
+      });
+
+      filePromise.then((d) => d).catch((e) => e);
+   };
+
+   onFileDownload = () => {
+      for (let [key, value] of this.map.entries()) {
+         console.log(key, value);
+         this.mapValueToArray = value.split('');
+         console.log(this.mapValueToArray);
+         for (let element of this.mapValueToArray) {
+            this.targetFileDetails.push({
+               EMP_ID: key,
+               CALCULATED_EFFORTS: element,
+            });
+         }
+      }
+      console.log(this.targetFileDetails);
+      const wb = XLSX.utils.book_new();
+      wb.Props = {
+         Title: 'Merged Sheet',
+      };
+      wb.SheetNames.push('Merged Data');
+      const ws = XLSX.utils.json_to_sheet(this.targetFileDetails);
+      wb.Sheets['Merged Data'] = ws;
+      const outputSheet = XLSX.write(wb, {
+         bookType: 'xlsx',
+         type: 'binary',
+      });
+
+      var buf = new ArrayBuffer(outputSheet.length); //convert outputSheet to arrayBuffer
+      var view = new Uint8Array(buf); //create uint8array as viewer
+      for (var i = 0; i < outputSheet.length; i++)
+         view[i] = outputSheet.charCodeAt(i) & 0xff; //convert to octet
+
+      saveAs(
+         new Blob([buf], { type: 'application/octet-stream' }),
+         'Target.xlsx'
+      );
+   };
+
+   render() {
+      return (
+         <div>
+            <input
+               type='file'
+               onChange={this.onFileChange}
+               multiple='multiple'
+               accept='.xlsx, .xls, .csv'
+            />
+            <button
+               onClick={this.onFileDownload}
+               // disabled={this.state.disableButtonValue}
+            >
+               Click here to download the target file
+            </button>
+         </div>
+      );
+   }
+}
+
+export default UpdateEfforts;
