@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-
+import { format } from 'date-fns';
 class UpdateEfforts extends Component {
    constructor(props) {
       super(props);
@@ -52,76 +52,15 @@ class UpdateEfforts extends Component {
                data.sort(function (a, b) {
                   return a.EMP_ID - b.EMP_ID;
                });
-               console.log(data);
                for (let employee of data) {
                   if (!this.map.has(employee.EMP_ID)) {
                      this.map.set(employee.EMP_ID, '0000000');
-                     this.date = 12 / 7 / 2021;
-                     console.log(this.date);
-                     this.dateMap.set(employee.EMP_ID, employee.TIMEPERIOD);
-
-                     this.mapValueToArray = this.map
-                        .get(employee.EMP_ID)
-                        .split('');
-
-                     if (
-                        employee.PROJECT_PRODUCTIVE_FLAG.toLowerCase() ===
-                           'yes' ||
-                        employee.PROJECT_PRODUCTIVE_FLAG.toLowerCase() === 'no'
-                     ) {
-                        if (employee.MON === 8 || employee.MON === 4) {
-                           this.mapValueToArray[0] = 1;
-                        }
-                        if (employee.TUE === 8 || employee.TUE === 4) {
-                           this.mapValueToArray[1] = 1;
-                        }
-                        if (employee.WED === 8 || employee.WED === 4) {
-                           this.mapValueToArray[2] = 1;
-                        }
-                        if (employee.THU === 8 || employee.THU === 4) {
-                           this.mapValueToArray[3] = 1;
-                        }
-                        if (employee.FRI === 8 || employee.FRI === 4) {
-                           this.mapValueToArray[4] = 1;
-                        }
-                        if (employee.SAT === 8 || employee.SAT === 4) {
-                           this.mapValueToArray[5] = 1;
-                        }
-                        if (employee.SUN === 8 || employee.SUN === 4) {
-                           this.mapValueToArray[6] = 1;
-                        }
-                     }
+                     const date = employee.TIMEPERIOD.toString();
+                     // console.log(this.date);
+                     this.dateMap.set(employee.EMP_ID, date);
+                     this.createmapValueToArray(employee);
                   } else {
-                     this.mapValueToArray = this.map
-                        .get(employee.EMP_ID)
-                        .split('');
-                     if (
-                        employee.PROJECT_PRODUCTIVE_FLAG.toLowerCase() ===
-                           'yes' ||
-                        employee.PROJECT_PRODUCTIVE_FLAG.toLowerCase() === 'no'
-                     ) {
-                        if (employee.MON === 8 || employee.MON === 4) {
-                           this.mapValueToArray[0] = 1;
-                        }
-                        if (employee.TUE === 8 || employee.TUE === 4) {
-                           this.mapValueToArray[1] = 1;
-                        }
-                        if (employee.WED === 8 || employee.WED === 4) {
-                           this.mapValueToArray[2] = 1;
-                        }
-                        if (employee.THU === 8 || employee.THU === 4) {
-                           this.mapValueToArray[3] = 1;
-                        }
-                        if (employee.FRI === 8 || employee.FRI === 4) {
-                           this.mapValueToArray[4] = 1;
-                        }
-                        if (employee.SAT === 8 || employee.SAT === 4) {
-                           this.mapValueToArray[5] = 1;
-                        }
-                        if (employee.SUN === 8 || employee.SUN === 4) {
-                           this.mapValueToArray[6] = 1;
-                        }
-                     }
+                     this.createmapValueToArray(employee);
                   }
                   this.valueArrayToString = this.mapValueToArray.join('');
                   this.map.set(employee.EMP_ID, this.valueArrayToString);
@@ -130,7 +69,7 @@ class UpdateEfforts extends Component {
                this.headerString.includes('CALCULATED_EFFORTS') ||
                this.headerString.includes('APPROVED_EFFORTS')
             ) {
-               console.log(data);
+               this.targetFileDetails = data
             } else {
                alert('only target and source files are allowed to upload.');
             }
@@ -146,17 +85,52 @@ class UpdateEfforts extends Component {
       filePromise.then((d) => d).catch((e) => e);
    };
 
+   createmapValueToArray = (employee) => {
+      this.mapValueToArray = this.map
+      .get(employee.EMP_ID)
+      .split('');
+
+   if (
+      employee.PROJECT_PRODUCTIVE_FLAG.toLowerCase() ===
+         'yes' ||
+      employee.PROJECT_PRODUCTIVE_FLAG.toLowerCase() === 'no'
+   ) {
+      if (employee.MON === 8 || employee.MON === 4) {
+         this.mapValueToArray[0] = employee.MON === 8 ? 1 : 0.5;
+      }
+      if (employee.TUE === 8 || employee.TUE === 4) {
+         this.mapValueToArray[1] = employee.TUE === 8 ? 1 : 0.5;;
+      }
+      if (employee.WED === 8 || employee.WED === 4) {
+         this.mapValueToArray[2] = employee.WED === 8 ? 1 : 0.5;;
+      }
+      if (employee.THU === 8 || employee.THU === 4) {
+         this.mapValueToArray[3] = employee.THU === 8 ? 1 : 0.5;;
+      }
+      if (employee.FRI === 8 || employee.FRI === 4) {
+         this.mapValueToArray[4] = employee.FRI === 8 ? 1 : 0.5;;
+      }
+      if (employee.SAT === 8 || employee.SAT === 4) {
+         this.mapValueToArray[5] = employee.SAT === 8 ? 1 : 0.5;;
+      }
+      if (employee.SUN === 8 || employee.SUN === 4) {
+         this.mapValueToArray[6] = employee.SUN === 8 ? 1 : 0.5;;
+      }
+   }
+   };
+
    onFileDownload = () => {
       for (let [key, value] of this.map.entries()) {
          console.log(key, value);
          this.mapValueToArray = value.split('');
          console.log(this.mapValueToArray);
-         for (let element of this.mapValueToArray) {
-            this.targetFileDetails.push({
-               EMP_ID: key,
-               CALCULATED_EFFORTS: element,
-            });
-         }
+         let date = new Date(this.dateMap.get(key));
+         this.mapValueToArray.forEach((element, index) => {
+               let datatodays = index === 0 ? date.setDate(new Date(date).getDate() + 0) : date.setDate(new Date(date).getDate() + 1) ;
+               const todate = new Date(datatodays);
+               const targetCell = this.targetFileDetails.find(item=> item['EFF_DATE(MM/DD/YYYY)'] === format(todate, 'MM/dd/yyyy'));
+               targetCell.APPROVED_EFFORTS = element
+         }) 
       }
       console.log(this.targetFileDetails);
       const wb = XLSX.utils.book_new();
